@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
     // The gRPC client connection should be shared by all Gateway connections to this endpoint.
     const client = await newGrpcConnection();
-
+    
     const gateway = connect({
         client,
         identity: await newIdentity(),

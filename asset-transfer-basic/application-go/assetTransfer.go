@@ -64,7 +64,9 @@ func main() {
 	}
 
 	log.Println("--> Connecting to channel", channelName)
+	//network, err := gw.GetNetwork(channelName)
 	network, err := gw.GetNetwork(channelName)
+
 	if err != nil {
 		log.Fatalf("Failed to get network: %v", err)
 	}
@@ -78,6 +80,7 @@ func main() {
 	contract := network.GetContract(chaincodeName)
 
 	log.Println("--> Submit Transaction: InitLedger, function creates the initial set of assets on the ledger")
+	//result, err := contract.SubmitTransaction("InitLedger")
 	result, err := contract.SubmitTransaction("InitLedger")
 	if err != nil {
 		log.Fatalf("Failed to Submit transaction: %v", err)
@@ -125,6 +128,9 @@ func main() {
 	}
 	log.Println(string(result))
 	log.Println("============ application-golang ends ============")
+
+	fmt.Println("lalalalallala for test")
+
 }
 
 func populateWallet(wallet *gateway.Wallet) error {

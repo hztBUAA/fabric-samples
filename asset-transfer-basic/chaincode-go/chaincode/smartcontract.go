@@ -23,6 +23,21 @@ type Asset struct {
 	Size           int    `json:"Size"`
 }
 
+
+
+//增加对苏同学的测试链码的循环递归调用
+// RecursiveCall is a recursive function that infinitely calls itself
+func (s *SmartContract) RecursiveCall(ctx contractapi.TransactionContextInterface, input string) (string, error) {
+	return s.loop(input), nil
+}
+
+// loop is a helper function for RecursiveCall that performs the actual recursion
+func (s *SmartContract) loop(a string) string {
+	b := a + "loop!"
+	return s.loop(b)
+}
+
+
 // InitLedger adds a base set of assets to the ledger
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	assets := []Asset{

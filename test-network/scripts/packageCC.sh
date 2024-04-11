@@ -3,6 +3,7 @@
 #!/bin/bash
 
 source scripts/utils.sh
+export PATH=$PATH:/home/hzt/sdk/go1.17/bin
 
 CC_NAME=${1}
 CC_SRC_PATH=${2}

@@ -15,7 +15,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
@@ -38,15 +40,39 @@ const (
 var now = time.Now()
 var assetId = fmt.Sprintf("asset%d", now.Unix()*1e3+int64(now.Nanosecond())/1e6)
 
+func Reverse(s string) string {
+	b := []byte(s)
+	for i, j := 0, len(b)-1; i < len(b)/2; i, j = i+1, j-1 {
+		b[i], b[j] = b[j], b[i]
+	}
+	return string(b)
+}
+func FuzzReverse(f *testing.F) {
+	testcases := []string{"Hello, world", " ", "!12345"}
+	for _, tc := range testcases {
+		f.Add(tc) // Use f.Add to provide a seed corpus
+	}
+	f.Fuzz(func(t *testing.T, orig string) {
+		rev := Reverse(orig)
+		doubleRev := Reverse(rev)
+		if orig != doubleRev {
+			t.Errorf("Before: %q, after: %q", orig, doubleRev)
+		}
+		if utf8.ValidString(orig) && !utf8.ValidString(rev) {
+			t.Errorf("Reverse produced invalid UTF-8 string %q", rev)
+		}
+	})
+}
+
 func main() {
-	// The gRPC client connection should be shared by all Gateway connections to this endpoint
+	// The gRPC chaincodeSupportClient connection should be shared by all Gateway connections to this endpoint
 	clientConnection := newGrpcConnection()
 	defer clientConnection.Close()
 
 	id := newIdentity()
 	sign := newSign()
 
-	// Create a Gateway connection for a specific client identity
+	// Create a Gateway connection for a specific chaincodeSupportClient identity
 	gw, err := client.Connect(
 		id,
 		client.WithSign(sign),
@@ -57,6 +83,7 @@ func main() {
 		client.WithSubmitTimeout(5*time.Second),
 		client.WithCommitStatusTimeout(1*time.Minute),
 	)
+
 	if err != nil {
 		panic(err)
 	}
@@ -76,12 +103,22 @@ func main() {
 	network := gw.GetNetwork(channelName)
 	contract := network.GetContract(chaincodeName)
 
-	initLedger(contract)
-	getAllAssets(contract)
+	// initLedger(contract)
+
+	//below is  what  you should fuzz
+	// getAllAssets(contract)
 	createAsset(contract)
-	readAssetByID(contract)
+	// readAssetByID(contract)
+	callLoop(contract)
 	transferAssetAsync(contract)
 	exampleErrorHandling(contract)
+	callLoop(contract)
+	getAllAssets(contract)
+	// getAllAssets(contract)
+	// getAllAssets(contract)
+	// getAllAssets(contract)
+	//客户端增加对循环链码的调用
+
 }
 
 // newGrpcConnection creates a gRPC connection to the Gateway server.
@@ -180,6 +217,7 @@ func getAllAssets(contract *client.Contract) {
 	fmt.Println("\n--> Evaluate Transaction: GetAllAssets, function returns all the current assets on the ledger")
 
 	evaluateResult, err := contract.EvaluateTransaction("GetAllAssets")
+
 	if err != nil {
 		panic(fmt.Errorf("failed to evaluate transaction: %w", err))
 	}
@@ -188,10 +226,22 @@ func getAllAssets(contract *client.Contract) {
 	fmt.Printf("*** Result:%s\n", result)
 }
 
+func callLoop(contract *client.Contract) {
+	fmt.Println("\n--> TestLoop Transaction: callLoop, function to recursively call the loop function")
+
+	stringResult, err := contract.EvaluateTransaction("RecursiveCall", "Just for a test by hzt!")
+
+	if err != nil {
+		panic(fmt.Errorf("failed to evaluate transaction: %w", err))
+	}
+	// result := formatJSON(stringResult)
+
+	fmt.Printf("*** Result:%s\n", stringResult)
+}
+
 // Submit a transaction synchronously, blocking until it has been committed to the ledger.
 func createAsset(contract *client.Contract) {
 	fmt.Printf("\n--> Submit Transaction: CreateAsset, creates new asset with ID, Color, Size, Owner and AppraisedValue arguments \n")
-
 	_, err := contract.SubmitTransaction("CreateAsset", assetId, "yellow", "5", "Tom", "1300")
 	if err != nil {
 		panic(fmt.Errorf("failed to submit transaction: %w", err))
